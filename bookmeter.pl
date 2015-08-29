@@ -7,6 +7,7 @@ use Data::Dumper;
 use Config::Pit;
 use utf8;
 use Encode;
+use Web::Scraper;
 #サービスID, アイテムID, 13桁ISBN, カテゴリ, 評価, 読書状況, レビュー, タグ, 非公開メモ, 登録日時, 読了日
 
 my $config = pit_get("bookmeter.com");
@@ -26,4 +27,26 @@ $mech->submit_form(
 $mech->get('http://bookmeter.com/home?main=book&display=list');
 
 my $data = $mech->content;
-print encode('utf8',$data);
+#print encode('utf8',$data);
+my $lists = scrape_from_lists($data);
+
+for my $item (@{$lists->{lists}}) {
+    print encode('utf8',$item->{date});
+    print encode('utf8',$item->{title});
+    print encode('utf8',$item->{author});
+}
+
+sub scrape_from_lists {
+    my $html = shift;
+
+    my $scraper = scraper{
+        process 'div.book_list_simple_box', "lists[]" => scraper {
+            process 'div.book_list_simple_td_date', date => 'TEXT';
+            process 'div.book_list_simple_td_title', title => 'TEXT';
+            process 'div.book_list_simple_td_author', author => 'TEXT';
+        };
+    };
+    $scraper->scrape($html);
+}
+
+
